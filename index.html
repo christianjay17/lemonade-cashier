@@ -508,7 +508,15 @@
   const EMOJIS = ['👤','😊','⭐','🌟','🎯','🔥'];
 
   // ── ACCOUNTS ──
+  const CACHE_KEY = 'cn_lemonade_accounts';
+
   async function loadAccounts() {
+    // 1. Show cached accounts instantly if available
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try { accounts = JSON.parse(cached); renderProfiles(); } catch(e) {}
+    }
+    // 2. Fetch from Firebase in background
     try {
       const snap = await getDoc(doc(db, 'config', 'accounts'));
       if (snap.exists() && snap.data().list) {
@@ -520,12 +528,15 @@
         ];
         await saveAccounts();
       }
+      localStorage.setItem(CACHE_KEY, JSON.stringify(accounts));
     } catch(e) { console.error(e); }
+    // Re-render with fresh data (no flicker if same data)
     renderProfiles();
   }
 
   async function saveAccounts() {
     await setDoc(doc(db, 'config', 'accounts'), { list: accounts }, { merge: true });
+    localStorage.setItem(CACHE_KEY, JSON.stringify(accounts));
   }
 
   function renderProfiles() {
